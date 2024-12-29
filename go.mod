@@ -1,3 +1,3 @@
 module github.com/brianwu291/go-playground
 
-go 1.22.2
+go 1.23.4
