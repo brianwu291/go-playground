@@ -1,18 +1,36 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
+	"sync"
+	"time"
 
 	// workerpool "github.com/brianwu291/go-playground/workerpool"
-	unbufferhandle "github.com/brianwu291/go-playground/unbufferhandle"
+	// unbufferhandle "github.com/brianwu291/go-playground/unbufferhandle"
+	adder "github.com/brianwu291/go-playground/adder"
 )
 
 func main() {
-	ctx := context.Background()
-	unBufferHandle := unbufferhandle.NewUnBufferHandle()
-	unBufferHandle.Start(ctx)
+	// ctx := context.Background()
+	// unBufferHandle := unbufferhandle.NewUnBufferHandle()
+	// unBufferHandle.Start(ctx)
+
+	var wg sync.WaitGroup
+	adder := adder.NewAdder(&adder.AdderConfig{Size: 5})
+	for i := 0; i < 5; i += 1 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			time.Sleep(time.Second * 2)
+			adder.Inc(1)
+		}()
+	}
+	first := adder.GetCurrentValue()
+	fmt.Printf("first: %d \n", first)
+	wg.Wait()
+	second := adder.GetCurrentValue()
+	fmt.Printf("second: %d \n", second)
 
 	portStr := "8999"
 	fmt.Printf("listening port %+v\n", portStr)
