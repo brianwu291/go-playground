@@ -1,6 +1,7 @@
 package unbufferhandle
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -12,11 +13,11 @@ func NewUnBufferHandle() *UnBufferHandle {
 	return &UnBufferHandle{}
 }
 
-func (u *UnBufferHandle) Start() {
-	var wg sync.WaitGroup
+func (u *UnBufferHandle) Start(ctx context.Context) {
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*5)
+	defer cancel()
 
-	timer := time.NewTimer(time.Second * 5)
-	defer timer.Stop()
+	var wg sync.WaitGroup
 
 	done := make(chan struct{})
 	res := make(chan int)
@@ -47,7 +48,7 @@ func (u *UnBufferHandle) Start() {
 					return
 				}
 				fmt.Printf("rr: %+v\n", rr)
-			case <-timer.C:
+			case <-timeoutCtx.Done():
 				fmt.Printf("times up!\n")
 				return
 			}
