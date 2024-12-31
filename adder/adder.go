@@ -65,7 +65,8 @@ func (ad *Adder) Inc(value int) {
 	case <-ad.done:
 		fmt.Printf("adder has done\n")
 		return
-	case ad.events <- &addEvent{Value: value}:
+	default:
+		ad.events <- &addEvent{Value: value}
 		fmt.Printf("sending events...\n")
 	}
 }
