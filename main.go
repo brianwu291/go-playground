@@ -3,35 +3,23 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"sync"
+	"time"
 
-	// "time"
-
-	// workerpool "github.com/brianwu291/go-playground/workerpool"
-	// unbufferhandle "github.com/brianwu291/go-playground/unbufferhandle"
-	adder "github.com/brianwu291/go-playground/adder"
+	ratelimiter "github.com/brianwu291/go-playground/ratelimiter"
 )
 
 func main() {
 	// ctx := context.Background()
-	// unBufferHandle := unbufferhandle.NewUnBufferHandle()
-	// unBufferHandle.Start(ctx)
 
-	var wg sync.WaitGroup
-	adder := adder.NewAdder(&adder.AdderConfig{Size: 5})
-	for i := 0; i < 1000; i += 1 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			adder.Inc(1)
-		}()
+	rateLimiter := ratelimiter.NewRateLimiter(10, time.Second * 60)
+
+	firstKey := "key1"
+	for i := 0; i < 11; i += 1 {
+		ok := rateLimiter.Access(firstKey)
+		fmt.Printf("ok: %+v on: %d\n", ok, i)
 	}
-	first := adder.GetCurrentValue()
-	fmt.Printf("first: %d \n", first)
-	wg.Wait()
-	second := adder.GetCurrentValue()
-	fmt.Printf("second: %d \n", second)
-	adder.Close()
+	rest := rateLimiter.GetRestTime(firstKey)
+	fmt.Printf("rest time %+v\n", rest)
 
 	portStr := "8999"
 	fmt.Printf("listening port %+v\n", portStr)
