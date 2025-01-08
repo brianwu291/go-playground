@@ -8,7 +8,7 @@ import (
 )
 
 type WorkerPool[T any] struct {
-	Config WorkerPoolConfig
+	config WorkerPoolConfig
 }
 
 type WorkerPoolConfig struct {
@@ -16,7 +16,7 @@ type WorkerPoolConfig struct {
 	Timeout time.Duration
 }
 
-type Job[T any] func() (T, error)
+type Job[T any] func(timeoutCtx context.Context) (T, error)
 
 var defaultConfig = WorkerPoolConfig{
 	Size:    5,
@@ -28,11 +28,11 @@ func NewWorkerPool[T any](options ...func(*WorkerPoolConfig)) *WorkerPool[T] {
 	for _, option := range options {
 		option(&config)
 	}
-	return &WorkerPool[T]{Config: config}
+	return &WorkerPool[T]{config: config}
 }
 
 func (w *WorkerPool[T]) Process(ctx context.Context, jobs []Job[T]) ([]T, []error) {
-	timeoutCtx, cancel := context.WithTimeout(ctx, w.Config.Timeout)
+	timeoutCtx, cancel := context.WithTimeout(ctx, w.config.Timeout)
 	defer cancel()
 
 	howManyJobs := len(jobs)
@@ -46,25 +46,26 @@ func (w *WorkerPool[T]) Process(ctx context.Context, jobs []Job[T]) ([]T, []erro
 	close(internalJobs)
 
 	var wg sync.WaitGroup
-	for i := 0; i < w.Config.Size; i += 1 {
+	for i := 0; i < w.config.Size; i += 1 {
 		wg.Add(1)
-		go func() {
+		go func(workerId int) {
 			defer wg.Done()
 			for iJob := range internalJobs {
 				select {
 				case <-timeoutCtx.Done():
-					errors <- fmt.Errorf("worker %d: timeout", i)
+					errors <- fmt.Errorf("worker %d: timeout", workerId)
 					return
 				default:
-					res, err := iJob()
-					fmt.Printf("processed job: %+v with goroutine: %+v \n", res, i+1)
-					results <- res
+					res, err := iJob(timeoutCtx)
 					if err != nil {
 						errors <- err
+						continue
 					}
+					fmt.Printf("processed job and result is %+v, with goroutine: %+v \n", res, workerId)
+					results <- res
 				}
 			}
-		}()
+		}(i)
 	}
 
 	wg.Wait()
