@@ -12,7 +12,6 @@ func NewInterview() *Interview {
 
 func (i *Interview) FixBug(N int) {
 	var enable_print int
-	enable_print = 0
 	for N > 0 {
 		if enable_print == 0 && N%10 != 0 {
 			enable_print = 1
@@ -32,7 +31,7 @@ func (i *Interview) CountDirtyAreas(plan []string) int {
 	rows := len(plan)
 	cols := len(plan[0])
 
-	// Create visited map to mark areas
+	// create visited map to mark areas
 	visited := make([][]bool, rows)
 	for i := range visited {
 		visited[i] = make([]bool, cols)
@@ -40,7 +39,7 @@ func (i *Interview) CountDirtyAreas(plan []string) int {
 
 	var checkArea func(row, col int) bool
 	checkArea = func(row, col int) bool {
-		// Check walls
+		// check walls
 		if row < 0 || row >= rows || col < 0 || col >= cols ||
 			plan[row][col] == '#' || visited[row][col] {
 			return false
@@ -49,7 +48,7 @@ func (i *Interview) CountDirtyAreas(plan []string) int {
 		visited[row][col] = true
 		hasDirty := plan[row][col] == '*'
 
-		// Check all 4 directions and combine results
+		// check all 4 directions and combine results
 		hasDirty = checkArea(row-1, col) || hasDirty
 		hasDirty = checkArea(row+1, col) || hasDirty
 		hasDirty = checkArea(row, col-1) || hasDirty
@@ -58,14 +57,14 @@ func (i *Interview) CountDirtyAreas(plan []string) int {
 		return hasDirty
 	}
 
-	// Count areas that have dirty cells
+	// count areas that have dirty cells
 	dirtyAreas := 0
-	for i := 0; i < rows; i++ {
-		for j := 0; j < cols; j++ {
+	for i := 0; i < rows; i += 1 {
+		for j := 0; j < cols; j += 1 {
 			if !visited[i][j] && plan[i][j] != '#' {
-				// If this new area contains any dirty cell
+				// if this new area contains any dirty cell
 				if checkArea(i, j) {
-					dirtyAreas++
+					dirtyAreas += 1
 				}
 			}
 		}
