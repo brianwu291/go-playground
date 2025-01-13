@@ -1,17 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	// "time"
 	// ratelimiter "github.com/brianwu291/go-playground/ratelimiter"
-	interview "github.com/brianwu291/go-playground/interview"
+	// interview "github.com/brianwu291/go-playground/interview"
+	groundone "github.com/brianwu291/go-playground/groundone"
 )
 
 func main() {
-	iw := interview.NewInterview()
-	iw.FixBug(10012)
 	// ctx := context.Background()
+	gro := groundone.NewGroundOne()
+	var mockFile []string
+	for i := 0; i < 20; i += 1 {
+		content := fmt.Sprintf("content: %+v", i)
+		mockFile = append(mockFile, content)
+	}
+	buffers := gro.Producer(mockFile)
+	gro.Consumer(buffers)
 
 	// rateLimiter := ratelimiter.NewRateLimiter(10, time.Second * 60)
 	// pool := workerpool.NewWorkerPool[int]()

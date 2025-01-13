@@ -2,6 +2,7 @@ package groundone
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -16,50 +17,51 @@ func NewGroundOne() *GroundOne {
 }
 
 func (a *GroundOne) mockFlashFile(content []string) {
-	fmt.Printf("file content: %+v\n", content)
+	if len(content) > 0 {
+		time.Sleep(time.Second * 3)
+		fmt.Printf("file content: %+v\n", content)
+	}
 }
 
 func (a *GroundOne) Producer(content []string) chan string {
+	var wg sync.WaitGroup
 	result := make(chan string, len(content))
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for _, contentStr := range content {
-				time.Sleep(time.Second * 1)
-				result <- contentStr
+			result <- contentStr
 		}
 		close(result)
 	}()
+	wg.Wait()
 	return result
 }
 
 func (a *GroundOne) Consumer(buffers <-chan string) {
-	var fileContent []string
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
+	var content []string
+
 	for {
 		select {
-		case buffer, ok := <-buffers:
-			if !ok {
-				fmt.Printf("buffer closed!\n")
-				if len(fileContent) > 0 {
-					a.mockFlashFile(fileContent)
-				}
+		case buf, ok := <-buffers:
+			if !ok { // closed
+				a.mockFlashFile(content)
 				return
 			}
-			if len(fileContent) == maxSize {
-				fmt.Printf("maxSize reached: ")
-				a.mockFlashFile(fileContent)
-				fileContent = fileContent[:0]
-				fileContent = append(fileContent, buffer)
-			} else {
-				fileContent = append(fileContent, buffer)
+			if len(content) == maxSize {
+				a.mockFlashFile(content)
+				content = content[:0]
+				content = append(content, buf)
+				continue
 			}
+			content = append(content, buf)
 		case <-ticker.C:
-			fmt.Printf("ticker ta: ")
-			if len(fileContent) > 0 {
-				a.mockFlashFile(fileContent)
-				fileContent = fileContent[:0]
-			}
+			fmt.Printf("flash anyway!\n")
+			a.mockFlashFile(content)
+			content = content[:0]
 		}
 	}
 }
