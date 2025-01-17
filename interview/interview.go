@@ -110,3 +110,37 @@ func (i *Interview) GetMaxDepth(root *TreeNode) int {
 
 	return result
 }
+
+/**
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
+
+type ListNode struct {
+	Val  int
+	Next *ListNode
+}
+
+func (i *Interview) RemoveNthFromEnd(head *ListNode, n int) *ListNode {
+	var listInSlice []*ListNode
+	curNode := head
+	for curNode != nil {
+		listInSlice = append(listInSlice, curNode)
+		curNode = curNode.Next
+	}
+	posFromStart := len(listInSlice) - n
+	if posFromStart == 0 {
+		newHead := head.Next
+		head.Next = nil
+		return newHead
+	}
+	removedNode := listInSlice[posFromStart]
+	newNextNode := removedNode.Next
+	preNode := listInSlice[posFromStart-1]
+	preNode.Next = newNextNode
+	removedNode.Next = nil
+	return head
+}
