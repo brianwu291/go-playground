@@ -80,7 +80,7 @@ type TreeNode struct {
 }
 
 type nodeWithLevel struct {
-	Node  TreeNode
+	Node  *TreeNode
 	Level int
 }
 
@@ -92,7 +92,7 @@ func (i *Interview) GetMaxDepth(root *TreeNode) int {
 
 	result := 1
 	var queue []nodeWithLevel
-	queue = append(queue, nodeWithLevel{Node: *root, Level: 1})
+	queue = append(queue, nodeWithLevel{Node: root, Level: 1})
 
 	for len(queue) > 0 {
 		curNodeInfo := queue[0]
@@ -101,10 +101,10 @@ func (i *Interview) GetMaxDepth(root *TreeNode) int {
 		}
 		queue = queue[1:]
 		if curNodeInfo.Node.Left != nil {
-			queue = append(queue, nodeWithLevel{Node: *curNodeInfo.Node.Left, Level: curNodeInfo.Level + 1})
+			queue = append(queue, nodeWithLevel{Node: curNodeInfo.Node.Left, Level: curNodeInfo.Level + 1})
 		}
 		if curNodeInfo.Node.Right != nil {
-			queue = append(queue, nodeWithLevel{Node: *curNodeInfo.Node.Right, Level: curNodeInfo.Level + 1})
+			queue = append(queue, nodeWithLevel{Node: curNodeInfo.Node.Right, Level: curNodeInfo.Level + 1})
 		}
 	}
 
@@ -154,7 +154,7 @@ func (i *Interview) LevelOrder(root *TreeNode) [][]int {
 	}
 	var result [][]int
 	var queue []nodeWithLevel
-	queue = append(queue, nodeWithLevel{Level: 0, Node: *root})
+	queue = append(queue, nodeWithLevel{Level: 0, Node: root})
 	firstLevelOrder := []int{root.Value}
 	result = append(result, firstLevelOrder)
 	for len(queue) > 0 {
@@ -169,7 +169,7 @@ func (i *Interview) LevelOrder(root *TreeNode) [][]int {
 				result = append(result, empty)
 			}
 			result[nextLevel] = append(result[nextLevel], left.Value)
-			queue = append(queue, nodeWithLevel{Level: nextLevel, Node: *left})
+			queue = append(queue, nodeWithLevel{Level: nextLevel, Node: left})
 		}
 		if right != nil {
 			if nextLevel > len(result)-1 {
@@ -177,7 +177,7 @@ func (i *Interview) LevelOrder(root *TreeNode) [][]int {
 				result = append(result, empty)
 			}
 			result[nextLevel] = append(result[nextLevel], right.Value)
-			queue = append(queue, nodeWithLevel{Level: nextLevel, Node: *right})
+			queue = append(queue, nodeWithLevel{Level: nextLevel, Node: right})
 		}
 		queue = queue[1:]
 	}
