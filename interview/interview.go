@@ -144,3 +144,42 @@ func (i *Interview) RemoveNthFromEnd(head *ListNode, n int) *ListNode {
 	removedNode.Next = nil
 	return head
 }
+
+// [3,9,20,null,null,15,7]
+
+func (i *Interview) LevelOrder(root *TreeNode) [][]int {
+	if root == nil {
+		empty := [][]int{}
+		return empty
+	}
+	var result [][]int
+	var queue []nodeWithLevel
+	queue = append(queue, nodeWithLevel{Level: 0, Node: *root})
+	firstLevelOrder := []int{root.Value}
+	result = append(result, firstLevelOrder)
+	for len(queue) > 0 {
+		cur := queue[0]
+		previousLevel := cur.Level
+		nextLevel := previousLevel + 1
+		left := cur.Node.Left
+		right := cur.Node.Right
+		if left != nil {
+			if nextLevel > len(result)-1 {
+				var empty []int
+				result = append(result, empty)
+			}
+			result[nextLevel] = append(result[nextLevel], left.Value)
+			queue = append(queue, nodeWithLevel{Level: nextLevel, Node: *left})
+		}
+		if right != nil {
+			if nextLevel > len(result)-1 {
+				var empty []int
+				result = append(result, empty)
+			}
+			result[nextLevel] = append(result[nextLevel], right.Value)
+			queue = append(queue, nodeWithLevel{Level: nextLevel, Node: *right})
+		}
+		queue = queue[1:]
+	}
+	return result
+}
