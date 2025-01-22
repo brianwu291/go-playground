@@ -3,23 +3,40 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 
-	// "time"
 	// ratelimiter "github.com/brianwu291/go-playground/ratelimiter"
 	// interview "github.com/brianwu291/go-playground/interview"
-	groundone "github.com/brianwu291/go-playground/groundone"
+	// groundone "github.com/brianwu291/go-playground/groundone"
+	realtimechat "github.com/brianwu291/go-playground/realtimechat"
 )
 
 func main() {
 	// ctx := context.Background()
-	gro := groundone.NewGroundOne()
-	var mockFile []string
-	for i := 0; i < 20; i += 1 {
-		content := fmt.Sprintf("content: %+v", i)
-		mockFile = append(mockFile, content)
-	}
-	buffers := gro.Producer(mockFile)
-	gro.Consumer(buffers)
+	// gro := groundone.NewGroundOne()
+	// var mockFile []string
+	// for i := 0; i < 20; i += 1 {
+	// 	content := fmt.Sprintf("content: %+v", i)
+	// 	mockFile = append(mockFile, content)
+	// }
+	// buffers := gro.Producer(mockFile)
+	// gro.Consumer(buffers)
+
+	chat := realtimechat.NewRealTimeChat(10)
+  chat.Run()
+  defer chat.Stop()
+
+	clientOne, _ := chat.AddClient("User1")
+	clientTwo, _ := chat.AddClient("User2")
+	clientThree, _ := chat.AddClient("User3")
+
+	chat.SendMessage("Hi! 11", clientOne.Id)
+	chat.SendMessage("Hi! 22", clientTwo.Id)
+	chat.SendMessage("Hi! 33", clientThree.Id)
+
+	
+	time.Sleep(time.Second * 10)
+	chat.Stop()
 
 	// rateLimiter := ratelimiter.NewRateLimiter(10, time.Second * 60)
 	// pool := workerpool.NewWorkerPool[int]()
@@ -53,7 +70,7 @@ func main() {
 	// fmt.Printf("rest time %+v\n", rest)
 
 	portStr := "8999"
-	// fmt.Printf("listening port %+v\n", portStr)
+	fmt.Printf("listening port %+v\n", portStr)
 
 	http.ListenAndServe(":"+portStr, nil)
 }
