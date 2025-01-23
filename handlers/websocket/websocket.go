@@ -24,6 +24,7 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 		CheckOrigin: func(r *http.Request) bool {
 			return true // For development only
 		},
+		EnableCompression: true,
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
