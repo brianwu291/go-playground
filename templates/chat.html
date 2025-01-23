@@ -226,6 +226,43 @@
         color: #65676b;
       }
 
+      .toggle-clients {
+        display: none;
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        color: #65676b;
+      }
+
+      @media (max-width: 500px) {
+        .clients-panel {
+          position: fixed;
+          top: 0;
+          right: -250px;
+          height: 100%;
+          transition: right 0.3s ease;
+          box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+          z-index: 1000;
+        }
+
+        .clients-panel.active {
+          right: 0;
+        }
+
+        .toggle-clients {
+          display: block;
+        }
+
+        .chat-container {
+          border-right: none;
+        }
+
+        body {
+          padding: 10px;
+        }
+      }
+
       @keyframes notification-pulse {
         0% {
           opacity: 1;
@@ -241,6 +278,24 @@
       .notification-active {
         animation: notification-pulse 1s infinite;
       }
+
+      .panel-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 999;
+      }
+
+      .panel-overlay.active {
+        display: block;
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
@@ -255,6 +310,9 @@
             <div class="room-status" id="connectionStatus">Connecting...</div>
           </div>
         </div>
+        <button class="toggle-clients" onclick="toggleClientsPanel()">
+          <i class="fas fa-users"></i>
+        </button>
       </div>
 
       <div class="main-content">
@@ -286,6 +344,28 @@
     </div>
 
     <script>
+      const overlay = document.createElement("div");
+      overlay.className = "panel-overlay";
+      document.body.appendChild(overlay);
+
+      function toggleClientsPanel() {
+        const panel = document.querySelector(".clients-panel");
+        if (panel) {
+          panel.classList.toggle("active");
+        }
+        const overlay = document.querySelector(".panel-overlay");
+        if (overlay) {
+          overlay.classList.toggle("active");
+        }
+      }
+
+      overlay.addEventListener("click", () => {
+        const panel = document.querySelector(".clients-panel");
+        if (panel.classList.contains("active")) {
+          toggleClientsPanel();
+        }
+      });
+
       if ("Notification" in window) {
         Notification.requestPermission().then(function (permission) {
           console.log("Notification permission:", permission);
@@ -358,7 +438,9 @@
 
       // ws://localhost:8080/ws
       // wss://go-playground-chatroom-yperdw.fly.dev/ws
-      const ws = new WebSocket("wss://go-playground-chatroom-yperdw.fly.dev/ws");
+      const ws = new WebSocket(
+        "wss://go-playground-chatroom-yperdw.fly.dev/ws"
+      );
 
       ws.onopen = () => {
         const username = prompt("Enter your username:");
