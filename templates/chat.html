@@ -340,6 +340,7 @@
       }
 
       let clientId = "";
+      let clientName = "";
       let currentRoom = "";
       let originalTitle = document.title;
       let isWindowFocused = true;
@@ -383,6 +384,7 @@
           case "join_response":
             clientId = data.clientId;
             currentRoom = data.roomName;
+            clientName = data.clientName;
             document.getElementById("currentRoom").textContent = currentRoom;
             document.getElementById("messageInput").disabled = false;
             document.getElementById("sendButton").disabled = false;
@@ -410,7 +412,7 @@
         const messagesDiv = document.getElementById("messages");
         const messageContainer = document.createElement("div");
 
-        if (message.authorName === "System") {
+        if (message.authorName === "system") {
           messageContainer.className = "system-message";
           messageContainer.textContent = message.content;
         } else {
@@ -459,6 +461,19 @@
           input.value = "";
         }
       }
+      function leaveRoom() {
+        if (clientId && clientName && currentRoom) {
+          ws.send(
+            JSON.stringify({
+              type: "leave",
+              content: "",
+              username: clientName,
+              authorId: clientId,
+              roomName: currentRoom,
+            })
+          );
+        }
+      }
 
       ws.onclose = () => {
         displaySystemMessage("Disconnected from server");
@@ -476,6 +491,9 @@
             sendMessage();
           }
         });
+      window.addEventListener("unload", () => {
+        leaveRoom();
+      });
     </script>
   </body>
 </html>

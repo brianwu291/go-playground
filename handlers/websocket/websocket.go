@@ -2,6 +2,7 @@ package websockethandler
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -55,16 +56,10 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 	}
 	defer conn.Close()
 
-	var currentRoom *realtimechat.ChatRoom
-	var currentClient *realtimechat.Client
-
 	// handle WebSocket messages
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
-			if currentClient != nil && currentRoom != nil {
-				currentRoom.RemoveClient(currentClient.Id)
-			}
 			return
 		}
 
@@ -88,15 +83,15 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 				log.Printf("Failed to add client: %v", err)
 				continue
 			}
-
-			currentRoom = room
-			currentClient = client
+			joinedMsg := fmt.Sprintf(realtimechat.ClientJoinedTemplate, client.Name, room.Name)
+			room.SendSystemMessage(joinedMsg)
 
 			// send join confirmation
 			conn.WriteJSON(map[string]interface{}{
-				"type":     "join_response",
-				"clientId": client.Id,
-				"roomName": message.RoomName,
+				"type":       "join_response",
+				"clientId":   client.Id,
+				"clientName": client.Name,
+				"roomName":   message.RoomName,
 			})
 
 			ws.sendClientsList(room, conn)
@@ -121,10 +116,32 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 				}
 			}()
 
-		case "message":
-			if currentRoom != nil && currentClient != nil {
-				currentRoom.SendMessage(message.Content, message.AuthorId)
+		case "leave":
+			room, err := ws.chat.GetRoom(message.RoomName)
+			if err != nil {
+				log.Printf("Failed to find room: %v", err)
+				continue
 			}
+			err = room.RemoveClient(message.AuthorId)
+			if err != nil {
+				log.Printf("Failed to remove client: %v", err)
+				continue
+			}
+
+			leftMsg := fmt.Sprintf(realtimechat.ClientLeftTemplate, message.Username, message.RoomName)
+			room.SendSystemMessage(leftMsg)
+		case "message":
+			currentRoom, err := ws.chat.GetRoom(message.RoomName)
+			if err != nil {
+				log.Printf("cannot find room: %+v", err)
+				continue
+			}
+			client, err := currentRoom.GetClientById(message.AuthorId)
+			if err != nil {
+				log.Printf("cannot find client: %+v", err)
+				continue
+			}
+			currentRoom.SendMessage(message.Content, client.Id)
 
 		case "list_rooms":
 			rooms := ws.chat.ListRooms()

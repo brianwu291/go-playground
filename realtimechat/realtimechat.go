@@ -10,13 +10,20 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	systemId             = "ss__system__ww+_er43t@g(q3x*&1x"
+	systemName           = "system"
+	ClientJoinedTemplate = "client: %s joined in %s"
+	ClientLeftTemplate   = "client: %s left in %s"
+)
+
 type RealTimeChat struct {
 	rooms      map[string]*ChatRoom
 	roomsMutex sync.RWMutex
 }
 
 type ChatRoom struct {
-	name        string
+	Name        string
 	maxClients  int
 	clientGroup clientGroup
 	messageChan chan Message
@@ -67,14 +74,20 @@ func (rt *RealTimeChat) GetOrCreateRoom(roomName string, maxClients int) (*ChatR
 	}
 
 	room := &ChatRoom{
-		name:       roomName,
-		maxClients: maxClients,
+		Name:       roomName,
+		maxClients: maxClients + 1,
 		clientGroup: clientGroup{
 			clients: make(map[string]*Client),
 		},
 		messageChan: make(chan Message, 100),
 		stopChan:    make(chan struct{}),
 	}
+	system := &Client{
+		Id:       systemId,
+		Name:     systemName,
+		Messages: make(chan Message, 100),
+	}
+	room.clientGroup.clients[systemId] = system
 
 	go room.broadcastMessage()
 	go func() {
@@ -100,11 +113,11 @@ func (room *ChatRoom) Stop() {
 	for _, client := range room.clientGroup.clients {
 		select {
 		case client.Messages <- Message{
-			Id:         uuid.New().String(),
+			Id:         systemId,
 			Content:    "Chat room is closing",
-			AuthorName: "System",
+			AuthorName: systemName,
 			CreatedAt:  time.Now(),
-			RoomName:   room.name,
+			RoomName:   room.Name,
 		}:
 		default:
 		}
@@ -141,6 +154,24 @@ func (room *ChatRoom) AddClient(name string) (*Client, error) {
 	return client, nil
 }
 
+func (room *ChatRoom) SendSystemMessage(content string) (*Message, error) {
+	msg := Message{
+		Id:         uuid.New().String(),
+		Content:    content,
+		AuthorName: systemName,
+		CreatedAt:  time.Now(),
+		AuthorId:   systemId,
+		RoomName:   room.Name,
+	}
+
+	select {
+	case room.messageChan <- msg:
+		return &msg, nil
+	default:
+		return nil, errors.New("message channel is full when sending system message")
+	}
+}
+
 func (room *ChatRoom) RemoveClient(id string) error {
 	room.clientGroup.mu.Lock()
 	defer room.clientGroup.mu.Unlock()
@@ -170,7 +201,7 @@ func (room *ChatRoom) SendMessage(content string, authorId string) (*Message, er
 		AuthorName: client.Name,
 		CreatedAt:  time.Now(),
 		AuthorId:   authorId,
-		RoomName:   room.name,
+		RoomName:   room.Name,
 	}
 
 	select {
@@ -185,7 +216,7 @@ func (room *ChatRoom) broadcastMessage() {
 	for {
 		select {
 		case <-room.stopChan:
-			fmt.Printf("the chat room %s has been stopped\n", room.name)
+			fmt.Printf("the chat room %s has been stopped\n", room.Name)
 			return
 		case msg := <-room.messageChan:
 			room.clientGroup.mu.RLock()
@@ -194,7 +225,7 @@ func (room *ChatRoom) broadcastMessage() {
 				case client.Messages <- msg:
 				default:
 					fmt.Printf("Failed to send message to client %s in room %s: buffer full\n",
-						client.Id, room.name)
+						client.Id, room.Name)
 				}
 			}
 			room.clientGroup.mu.RUnlock()
@@ -205,7 +236,7 @@ func (room *ChatRoom) broadcastMessage() {
 func (room *ChatRoom) GetConnectedClientsCount() int {
 	room.clientGroup.mu.RLock()
 	defer room.clientGroup.mu.RUnlock()
-	return len(room.clientGroup.clients)
+	return len(room.clientGroup.clients) - 1
 }
 
 func (room *ChatRoom) GetClientInfoList() []ClientInfo {
@@ -213,12 +244,31 @@ func (room *ChatRoom) GetClientInfoList() []ClientInfo {
 	defer room.clientGroup.mu.RUnlock()
 	var clientInfoList []ClientInfo
 	for _, client := range room.clientGroup.clients {
+		if client.Id == systemId {
+			continue
+		}
 		clientInfoList = append(clientInfoList, ClientInfo{
 			Id:   client.Id,
 			Name: client.Name,
 		})
 	}
 	return clientInfoList
+}
+
+func (room *ChatRoom) GetClientById(clientId string) (*Client, error) {
+	room.clientGroup.mu.RLock()
+	defer room.clientGroup.mu.RUnlock()
+	var client *Client
+	for _, c := range room.clientGroup.clients {
+		if c.Id == clientId && clientId != systemId {
+			client = c
+			break
+		}
+	}
+	if client != nil {
+		return client, nil
+	}
+	return nil, errors.New("client not found with id: %s" + clientId)
 }
 
 func (rt *RealTimeChat) GetRoom(roomName string) (*ChatRoom, error) {
@@ -230,6 +280,13 @@ func (rt *RealTimeChat) GetRoom(roomName string) (*ChatRoom, error) {
 		return nil, errors.New("room not found")
 	}
 	return room, nil
+}
+
+func (rt *RealTimeChat) RemoveRoom(name string) {
+	rt.roomsMutex.Lock()
+	defer rt.roomsMutex.Unlock()
+
+	delete(rt.rooms, name)
 }
 
 func (rt *RealTimeChat) ListRooms() []string {
