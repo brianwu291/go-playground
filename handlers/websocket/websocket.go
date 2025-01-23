@@ -27,6 +27,19 @@ func NewWebSocketHandler(chat *realtimechat.RealTimeChat) *WebSocketHandler {
 	}
 }
 
+func (ws *WebSocketHandler) sendClientsList(room *realtimechat.ChatRoom, conn *websocket.Conn) error {
+	clients := room.GetClientInfoList()
+
+	err := conn.WriteJSON(map[string]interface{}{
+		"type":    "clients_list",
+		"clients": clients,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -86,6 +99,8 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 				"roomName": message.RoomName,
 			})
 
+			ws.sendClientsList(room, conn)
+
 			// start message listener
 			go func() {
 				for msg := range client.Messages {
@@ -102,6 +117,7 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 						log.Printf("WebSocket write error: %v", err)
 						return
 					}
+					ws.sendClientsList(room, conn)
 				}
 			}()
 

@@ -28,6 +28,11 @@ type Client struct {
 	Messages chan Message
 }
 
+type ClientInfo struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
 type clientGroup struct {
 	clients map[string]*Client
 	mu      sync.RWMutex
@@ -192,6 +197,19 @@ func (room *ChatRoom) GetConnectedClientsCount() int {
 	room.clientGroup.mu.RLock()
 	defer room.clientGroup.mu.RUnlock()
 	return len(room.clientGroup.clients)
+}
+
+func (room *ChatRoom) GetClientInfoList() []ClientInfo {
+	room.clientGroup.mu.RLock()
+	defer room.clientGroup.mu.RUnlock()
+	var clientInfoList []ClientInfo
+	for _, client := range room.clientGroup.clients {
+		clientInfoList = append(clientInfoList, ClientInfo{
+			Id:   client.Id,
+			Name: client.Name,
+		})
+	}
+	return clientInfoList
 }
 
 func (rt *RealTimeChat) GetRoom(roomName string) (*ChatRoom, error) {

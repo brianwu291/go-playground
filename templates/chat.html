@@ -26,6 +26,12 @@
         overflow: hidden;
       }
 
+      .main-content {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
+
       .container {
         max-width: 1000px;
         margin: 0 auto;
@@ -82,7 +88,51 @@
         flex-direction: column;
         background: #ffffff;
         min-height: 0;
-        overflow: hidden;
+        border-right: 1px solid #e4e6eb;
+      }
+
+      .clients-panel {
+        width: 250px;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+      }
+      .clients-header {
+        padding: 16px;
+        border-bottom: 1px solid #e4e6eb;
+        font-weight: 600;
+        color: #65676b;
+      }
+
+      .clients-list {
+        padding: 12px;
+        overflow-y: auto;
+      }
+
+      .client-item {
+        padding: 8px 12px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+
+      .client-avatar {
+        width: 32px;
+        height: 32px;
+        background: #e4e6eb;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #65676b;
+      }
+
+      .client-name {
+        font-size: 0.9rem;
+        color: #050505;
       }
 
       .messages {
@@ -207,24 +257,30 @@
         </div>
       </div>
 
-      <div class="chat-container">
-        <div class="messages" id="messages"></div>
-        <div class="input-area">
-          <input
-            type="text"
-            class="message-input"
-            id="messageInput"
-            placeholder="Type a message..."
-            disabled
-          />
-          <button
-            class="send-button"
-            onclick="sendMessage()"
-            disabled
-            id="sendButton"
-          >
-            <i class="fas fa-paper-plane"></i>
-          </button>
+      <div class="main-content">
+        <div class="chat-container">
+          <div class="messages" id="messages"></div>
+          <div class="input-area">
+            <input
+              type="text"
+              class="message-input"
+              id="messageInput"
+              placeholder="Type a message..."
+              disabled
+            />
+            <button
+              class="send-button"
+              onclick="sendMessage()"
+              disabled
+              id="sendButton"
+            >
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+        <div class="clients-panel">
+          <div class="clients-header">Room Members</div>
+          <div class="clients-list" id="clientsList"></div>
         </div>
       </div>
     </div>
@@ -243,6 +299,23 @@
       notificationSound.onerror = function () {
         console.error("Error loading notification sound");
       };
+
+      function updateClientsList(clients) {
+        const clientsList = document.getElementById("clientsList");
+        clientsList.innerHTML = "";
+
+        clients.forEach((client) => {
+          const clientEl = document.createElement("div");
+          clientEl.className = "client-item";
+          clientEl.innerHTML = `
+                <div class="client-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="client-name">${client.name}</div>
+            `;
+          clientsList.appendChild(clientEl);
+        });
+      }
 
       function notifyUser(message) {
         // play sound for non-own messages
@@ -316,6 +389,10 @@
             document.getElementById("connectionStatus").textContent =
               "Connected";
             displaySystemMessage(`Joined room: ${currentRoom}`);
+            break;
+
+          case "clients_list":
+            updateClientsList(data.clients);
             break;
 
           case "message":
