@@ -36,7 +36,8 @@ type Message struct {
 }
 
 func NewRealTimeChat(maxClient int) *RealTimeChat {
-	return &RealTimeChat{
+
+	chat := &RealTimeChat{
 		maxClients: maxClient,
 		clientGroup: clientGroup{
 			clients: make(map[string]*Client),
@@ -44,6 +45,13 @@ func NewRealTimeChat(maxClient int) *RealTimeChat {
 		messageChan: make(chan Message, 100),
 		stopChan:    make(chan struct{}),
 	}
+
+	go func() {
+		time.Sleep(90 * time.Minute)
+		chat.Stop()
+	}()
+
+	return chat
 }
 
 func (chat *RealTimeChat) Run() {
@@ -53,6 +61,20 @@ func (chat *RealTimeChat) Run() {
 func (chat *RealTimeChat) Stop() {
 	chat.clientGroup.mu.Lock()
 	defer chat.clientGroup.mu.Unlock()
+	// notify all clients before closing
+	for _, client := range chat.clientGroup.clients {
+		select {
+		case client.Messages <- Message{
+			Id:         uuid.New().String(),
+			Content:    "Chat room is closing",
+			AuthorName: "System",
+			CreatedAt:  time.Now(),
+		}:
+		default:
+		}
+	}
+
+	time.Sleep(time.Second * 2)
 	close(chat.stopChan)
 	for clientId, client := range chat.clientGroup.clients {
 		close(client.Messages)
@@ -74,7 +96,6 @@ func (chat *RealTimeChat) AddClient(name string) (*Client, error) {
 		Name:     name,
 		Messages: make(chan Message, 100),
 	}
-	go client.receiveMessage()
 
 	chat.clientGroup.clients[clientId] = client
 	return client, nil
@@ -92,14 +113,6 @@ func (chat *RealTimeChat) RemoveClient(id string) error {
 	close(client.Messages)
 	delete(chat.clientGroup.clients, id)
 	return nil
-}
-
-func (client *Client) receiveMessage() {
-	fmt.Printf("start for client %+v\n", client.Name)
-	for msg := range client.Messages {
-		fmt.Printf("%s: %s\n", msg.AuthorName, msg.Content)
-	}
-	fmt.Printf("end for client %+v\n", client.Name)
 }
 
 func (chat *RealTimeChat) SendMessage(content string, authorId string) (*Message, error) {

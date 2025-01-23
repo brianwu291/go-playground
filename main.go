@@ -2,41 +2,35 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
-	"time"
 
 	// ratelimiter "github.com/brianwu291/go-playground/ratelimiter"
 	// interview "github.com/brianwu291/go-playground/interview"
 	// groundone "github.com/brianwu291/go-playground/groundone"
+	websockethandler "github.com/brianwu291/go-playground/handlers/websocket"
 	realtimechat "github.com/brianwu291/go-playground/realtimechat"
 )
 
+func serveChat(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("templates/chat.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	tmpl.Execute(w, nil)
+}
+
 func main() {
-	// ctx := context.Background()
-	// gro := groundone.NewGroundOne()
-	// var mockFile []string
-	// for i := 0; i < 20; i += 1 {
-	// 	content := fmt.Sprintf("content: %+v", i)
-	// 	mockFile = append(mockFile, content)
-	// }
-	// buffers := gro.Producer(mockFile)
-	// gro.Consumer(buffers)
 
 	chat := realtimechat.NewRealTimeChat(10)
-  chat.Run()
-  defer chat.Stop()
+	chat.Run()
+	defer chat.Stop()
 
-	clientOne, _ := chat.AddClient("User1")
-	clientTwo, _ := chat.AddClient("User2")
-	clientThree, _ := chat.AddClient("User3")
+	wsh := websockethandler.NewWebSocketHandler(chat)
 
-	chat.SendMessage("Hi! 11", clientOne.Id)
-	chat.SendMessage("Hi! 22", clientTwo.Id)
-	chat.SendMessage("Hi! 33", clientThree.Id)
-
-	
-	time.Sleep(time.Second * 10)
-	chat.Stop()
+	http.HandleFunc("/ws", wsh.HandleRealTimeChat)
+	http.HandleFunc("/", serveChat)
 
 	// rateLimiter := ratelimiter.NewRateLimiter(10, time.Second * 60)
 	// pool := workerpool.NewWorkerPool[int]()
