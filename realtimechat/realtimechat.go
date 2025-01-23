@@ -218,7 +218,11 @@ func (room *ChatRoom) broadcastMessage() {
 		case <-room.stopChan:
 			fmt.Printf("the chat room %s has been stopped\n", room.Name)
 			return
-		case msg := <-room.messageChan:
+		case msg, ok := <-room.messageChan:
+			if !ok {
+				fmt.Printf("Failed to send message since the room %s has been closed\n", room.Name)
+				return
+			}
 			room.clientGroup.mu.RLock()
 			for _, client := range room.clientGroup.clients {
 				select {
