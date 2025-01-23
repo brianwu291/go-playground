@@ -13,6 +13,14 @@ type WebSocketHandler struct {
 	chat *realtimechat.RealTimeChat
 }
 
+type wsMessage struct {
+	Type     string `json:"type"`
+	Content  string `json:"content"`
+	AuthorId string `json:"authorId"`
+	Username string `json:"username"`
+	RoomName string `json:"roomName"`
+}
+
 func NewWebSocketHandler(chat *realtimechat.RealTimeChat) *WebSocketHandler {
 	return &WebSocketHandler{
 		chat: chat,
@@ -22,7 +30,7 @@ func NewWebSocketHandler(chat *realtimechat.RealTimeChat) *WebSocketHandler {
 func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // For development only
+			return true
 		},
 		EnableCompression: true,
 	}
@@ -34,51 +42,80 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 	}
 	defer conn.Close()
 
-	// Handle WebSocket messages
+	var currentRoom *realtimechat.ChatRoom
+	var currentClient *realtimechat.Client
+
+	// handle WebSocket messages
 	for {
 		_, p, err := conn.ReadMessage()
 		if err != nil {
+			if currentClient != nil && currentRoom != nil {
+				currentRoom.RemoveClient(currentClient.Id)
+			}
 			return
 		}
 
-		var message struct {
-			Type     string `json:"type"`
-			Content  string `json:"content"`
-			AuthorId string `json:"authorId"`
-			Username string `json:"username"`
-		}
-
+		var message wsMessage
 		if err := json.Unmarshal(p, &message); err != nil {
 			continue
 		}
 
 		switch message.Type {
 		case "join":
-			client, err := ws.chat.AddClient(message.Username)
-			if err == nil {
-				conn.WriteJSON(map[string]interface{}{
-					"type":     "join_response",
-					"clientId": client.Id,
-				})
-				go func() {
-					for msg := range client.Messages {
-						err := conn.WriteJSON(map[string]interface{}{
-							"type":       "message",
-							"id":         msg.Id,
-							"content":    msg.Content,
-							"authorId":   msg.AuthorId,
-							"authorName": msg.AuthorName,
-							"createdAt":  msg.CreatedAt,
-						})
-						if err != nil {
-							log.Printf("WebSocket write error: %v", err)
-							return
-						}
-					}
-				}()
+			// get or create a room
+			room, err := ws.chat.GetOrCreateRoom(message.RoomName, 10)
+			if err != nil {
+				log.Printf("Failed to get/create room: %v", err)
+				continue
 			}
+
+			// add client to room
+			client, err := room.AddClient(message.Username)
+			if err != nil {
+				log.Printf("Failed to add client: %v", err)
+				continue
+			}
+
+			currentRoom = room
+			currentClient = client
+
+			// send join confirmation
+			conn.WriteJSON(map[string]interface{}{
+				"type":     "join_response",
+				"clientId": client.Id,
+				"roomName": message.RoomName,
+			})
+
+			// start message listener
+			go func() {
+				for msg := range client.Messages {
+					err := conn.WriteJSON(map[string]interface{}{
+						"type":       "message",
+						"id":         msg.Id,
+						"content":    msg.Content,
+						"authorId":   msg.AuthorId,
+						"authorName": msg.AuthorName,
+						"createdAt":  msg.CreatedAt,
+						"roomName":   msg.RoomName,
+					})
+					if err != nil {
+						log.Printf("WebSocket write error: %v", err)
+						return
+					}
+				}
+			}()
+
 		case "message":
-			ws.chat.SendMessage(message.Content, message.AuthorId)
+			if currentRoom != nil && currentClient != nil {
+				currentRoom.SendMessage(message.Content, message.AuthorId)
+			}
+
+		case "list_rooms":
+			rooms := ws.chat.ListRooms()
+			conn.WriteJSON(map[string]interface{}{
+				"type":  "rooms_list",
+				"rooms": rooms,
+			})
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 
 	websockethandler "github.com/brianwu291/go-playground/handlers/websocket"
 	realtimechat "github.com/brianwu291/go-playground/realtimechat"
@@ -18,17 +19,30 @@ func serveChat(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, nil)
 }
 
-func main() {
+func manageRoomLifecycle(rt *realtimechat.RealTimeChat) {
+	for {
+		// sleep for 1.5 hours + 5 minutes between cleanup cycles
+		time.Sleep(95 * time.Minute)
+		rooms := rt.ListRooms()
+		for _, roomName := range rooms {
+			if room, err := rt.GetRoom(roomName); err == nil {
+				room.Stop()
+			}
+		}
+	}
+}
 
-	chat := realtimechat.NewRealTimeChat(10)
-	chat.Run()
-	defer chat.Stop()
+func main() {
+	// init without max clients as it's per room now
+	chat := realtimechat.NewRealTimeChat()
+
+	// start room lifecycle management
+	go manageRoomLifecycle(chat)
 
 	wsh := websockethandler.NewWebSocketHandler(chat)
 
 	http.HandleFunc("/ws", wsh.HandleRealTimeChat)
 	http.HandleFunc("/", serveChat)
-
 
 	portStr := "8080"
 	fmt.Printf("listening port %+v\n", portStr)
