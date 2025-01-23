@@ -3,6 +3,7 @@ package realtimechat
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,6 +57,10 @@ func NewRealTimeChat() *RealTimeChat {
 func (rt *RealTimeChat) GetOrCreateRoom(roomName string, maxClients int) (*ChatRoom, error) {
 	rt.roomsMutex.Lock()
 	defer rt.roomsMutex.Unlock()
+
+	if len(strings.TrimSpace(roomName)) == 0 {
+		return nil, errors.New("roomName cannot be empty")
+	}
 
 	if room, exists := rt.rooms[roomName]; exists {
 		return room, nil
@@ -116,6 +121,10 @@ func (room *ChatRoom) Stop() {
 func (room *ChatRoom) AddClient(name string) (*Client, error) {
 	room.clientGroup.mu.Lock()
 	defer room.clientGroup.mu.Unlock()
+
+	if len(strings.TrimSpace(name)) == 0 {
+		return nil, errors.New("client name cannot be empty")
+	}
 
 	if len(room.clientGroup.clients) >= room.maxClients {
 		return nil, errors.New("chat room is full")
