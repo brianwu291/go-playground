@@ -41,9 +41,14 @@ func (ws *WebSocketHandler) sendClientsList(room *realtimechat.ChatRoom, conn *w
 	return nil
 }
 
-func (ws *WebSocketHandler) leaveRealTimeChat(clientId string, room *realtimechat.ChatRoom) {
-	if room != nil {
-		room.RemoveClient(clientId)
+func (ws *WebSocketHandler) leaveRealTimeChatAndNotify(clientId string, roomName string) {
+	if room, err := ws.chat.GetRoom(roomName); err == nil {
+		if client, _ := room.GetClientById(clientId); client != nil {
+			clientName := client.Name
+			room.RemoveClient(clientId)
+			leftMsg := fmt.Sprintf(realtimechat.ClientLeftTemplate, clientName, roomName)
+			room.SendSystemMessage(leftMsg)
+		}
 	}
 }
 
@@ -61,7 +66,13 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	defer conn.Close()
+	var currentClientId string
+	var currentRoomName string
+	defer func() {
+		fmt.Printf("closed!\n")
+		ws.leaveRealTimeChatAndNotify(currentClientId, currentRoomName)
+		conn.Close()
+	}()
 
 	// handle WebSocket messages
 	for {
@@ -90,6 +101,8 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 				log.Printf("Failed to add client: %v", err)
 				return
 			}
+			currentClientId = client.Id
+			currentRoomName = room.Name
 			joinedMsg := fmt.Sprintf(realtimechat.ClientJoinedTemplate, client.Name, room.Name)
 			room.SendSystemMessage(joinedMsg)
 
@@ -112,7 +125,7 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 						"content":    msg.Content,
 						"authorId":   msg.AuthorId,
 						"authorName": msg.AuthorName,
-						"createdAt":  msg.CreatedAt,
+						"createdAt":  int(msg.CreatedAt.Unix()),
 						"roomName":   msg.RoomName,
 					})
 					if err != nil {
@@ -123,17 +136,6 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 				}
 			}()
 
-		case "leave":
-			room, err := ws.chat.GetRoom(message.RoomName)
-			if err != nil {
-				log.Printf("Failed to find room: %v", err)
-				return
-			}
-			ws.leaveRealTimeChat(message.AuthorId, room)
-
-			leftMsg := fmt.Sprintf(realtimechat.ClientLeftTemplate, message.Username, message.RoomName)
-			room.SendSystemMessage(leftMsg)
-			return
 		case "message":
 			currentRoom, err := ws.chat.GetRoom(message.RoomName)
 			if err != nil {

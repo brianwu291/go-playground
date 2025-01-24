@@ -3,6 +3,7 @@ package realtimechat
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -31,14 +32,16 @@ type ChatRoom struct {
 }
 
 type Client struct {
-	Id       string
-	Name     string
-	Messages chan Message
+	Id        string
+	Name      string
+	Messages  chan Message
+	CreatedAt time.Time
 }
 
 type ClientInfo struct {
-	Id   string `json:"id"`
-	Name string `json:"name"`
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	CreatedAt int    `json:"createdAt"`
 }
 
 type clientGroup struct {
@@ -145,9 +148,10 @@ func (room *ChatRoom) AddClient(name string) (*Client, error) {
 
 	clientId := uuid.New().String()
 	client := &Client{
-		Id:       clientId,
-		Name:     name,
-		Messages: make(chan Message, 100),
+		Id:        clientId,
+		Name:      name,
+		Messages:  make(chan Message, 100),
+		CreatedAt: time.Now(),
 	}
 
 	room.clientGroup.clients[clientId] = client
@@ -252,10 +256,14 @@ func (room *ChatRoom) GetClientInfoList() []ClientInfo {
 			continue
 		}
 		clientInfoList = append(clientInfoList, ClientInfo{
-			Id:   client.Id,
-			Name: client.Name,
+			Id:        client.Id,
+			Name:      client.Name,
+			CreatedAt: int(client.CreatedAt.Unix()),
 		})
 	}
+	sort.Slice(clientInfoList, func(i, j int) bool {
+		return clientInfoList[i].CreatedAt < clientInfoList[j].CreatedAt
+	})
 	return clientInfoList
 }
 

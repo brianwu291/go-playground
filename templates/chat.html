@@ -134,6 +134,10 @@
         font-size: 0.9rem;
         color: #050505;
       }
+      .client-added-date {
+        font-size: 0.9rem;
+        color: #050505;
+      }
 
       .messages {
         flex: 1;
@@ -163,6 +167,21 @@
         background: #0084ff;
         color: white;
         align-self: flex-end;
+      }
+
+      .message .time {
+        font-size: 0.75rem;
+        opacity: 0.7;
+        margin-top: 4px;
+        display: block;
+      }
+
+      .sent .time {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .received .time {
+        color: #65676b;
       }
 
       .system-message {
@@ -385,6 +404,7 @@
         clientsList.innerHTML = "";
 
         clients.forEach((client) => {
+          let createdDate = new Date(client.createdAt * 1000);
           const clientEl = document.createElement("div");
           clientEl.className = "client-item";
           clientEl.innerHTML = `
@@ -392,6 +412,7 @@
                     <i class="fas fa-user"></i>
                 </div>
                 <div class="client-name">${client.name}</div>
+                <div class="client-added-date">${createdDate.toLocaleTimeString()}</div>
             `;
           clientsList.appendChild(clientEl);
         });
@@ -438,9 +459,7 @@
 
       // ws://localhost:8080/ws
       // wss://go-playground-chatroom-yperdw.fly.dev/ws
-      const ws = new WebSocket(
-        "wss://go-playground-chatroom-yperdw.fly.dev/ws"
-      );
+      const ws = new WebSocket("ws://localhost:8080/ws");
 
       ws.onopen = () => {
         const username = prompt("Enter your username:");
@@ -512,6 +531,16 @@
           const contentDiv = document.createElement("div");
           contentDiv.textContent = message.content;
           messageContainer.appendChild(contentDiv);
+
+          const timeSpan = document.createElement("span");
+          timeSpan.classList.add("time");
+          let createdDate = new Date(message.createdAt * 1000);
+          timeSpan.textContent = createdDate.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          messageContainer.appendChild(timeSpan);
         }
 
         messagesDiv.appendChild(messageContainer);
@@ -543,19 +572,6 @@
           input.value = "";
         }
       }
-      function leaveRoom() {
-        if (clientId && clientName && currentRoom) {
-          ws.send(
-            JSON.stringify({
-              type: "leave",
-              content: "",
-              username: clientName,
-              authorId: clientId,
-              roomName: currentRoom,
-            })
-          );
-        }
-      }
 
       ws.onclose = () => {
         displaySystemMessage("Disconnected from server");
@@ -573,9 +589,6 @@
             sendMessage();
           }
         });
-      window.addEventListener("unload", () => {
-        leaveRoom();
-      });
     </script>
   </body>
 </html>
