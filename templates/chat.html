@@ -363,9 +363,6 @@
     </div>
 
     <script>
-      window.envs = {
-        webSocketUrl: "{{ .WebSocketUrl }}",
-      };
       const overlay = document.createElement("div");
       overlay.className = "panel-overlay";
       document.body.appendChild(overlay);
@@ -460,7 +457,11 @@
         isWindowFocused = false;
       };
 
-      const ws = new WebSocket(window.envs.webSocketUrl + "/ws");
+      const isHttps = document.location.protocol === "https:";
+      const secure = isHttps ? "s" : "";
+      const port = document.location.port ? `:${document.location.port}` : "";
+      const socketUrl = `ws${secure}://${document.location.hostname}${port}/ws`;
+      const ws = new WebSocket(socketUrl);
 
       ws.onopen = () => {
         const username = prompt("Enter your username:");
