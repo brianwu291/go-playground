@@ -41,6 +41,12 @@ func (ws *WebSocketHandler) sendClientsList(room *realtimechat.ChatRoom, conn *w
 	return nil
 }
 
+func (ws *WebSocketHandler) leaveRealTimeChat(clientId string, room *realtimechat.ChatRoom) {
+	if room != nil {
+		room.RemoveClient(clientId)
+	}
+}
+
 func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
@@ -54,6 +60,7 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 		log.Printf("WebSocket upgrade error: %v", err)
 		return
 	}
+
 	defer conn.Close()
 
 	// handle WebSocket messages
@@ -74,14 +81,14 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 			room, err := ws.chat.GetOrCreateRoom(message.RoomName, 10)
 			if err != nil {
 				log.Printf("Failed to get/create room: %v", err)
-				continue
+				return
 			}
 
 			// add client to room
 			client, err := room.AddClient(message.Username)
 			if err != nil {
 				log.Printf("Failed to add client: %v", err)
-				continue
+				return
 			}
 			joinedMsg := fmt.Sprintf(realtimechat.ClientJoinedTemplate, client.Name, room.Name)
 			room.SendSystemMessage(joinedMsg)
@@ -120,26 +127,23 @@ func (ws *WebSocketHandler) HandleRealTimeChat(w http.ResponseWriter, r *http.Re
 			room, err := ws.chat.GetRoom(message.RoomName)
 			if err != nil {
 				log.Printf("Failed to find room: %v", err)
-				continue
+				return
 			}
-			err = room.RemoveClient(message.AuthorId)
-			if err != nil {
-				log.Printf("Failed to remove client: %v", err)
-				continue
-			}
+			ws.leaveRealTimeChat(message.AuthorId, room)
 
 			leftMsg := fmt.Sprintf(realtimechat.ClientLeftTemplate, message.Username, message.RoomName)
 			room.SendSystemMessage(leftMsg)
+			return
 		case "message":
 			currentRoom, err := ws.chat.GetRoom(message.RoomName)
 			if err != nil {
 				log.Printf("cannot find room: %+v", err)
-				continue
+				return
 			}
 			client, err := currentRoom.GetClientById(message.AuthorId)
 			if err != nil {
 				log.Printf("cannot find client: %+v", err)
-				continue
+				return
 			}
 			currentRoom.SendMessage(message.Content, client.Id)
 
