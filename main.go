@@ -21,8 +21,8 @@ func serveChat(w http.ResponseWriter, r *http.Request) {
 
 func manageRoomLifecycle(rt *realtimechat.RealTimeChat) {
 	for {
-		// sleep for 1.5 hours + 5 minutes between cleanup cycles
-		time.Sleep(95 * time.Minute)
+		// sleep for 1.5 hours between cleanup cycles
+		time.Sleep(90 * time.Minute)
 		rooms := rt.ListRooms()
 		for _, roomName := range rooms {
 			if room, err := rt.GetRoom(roomName); err == nil {
