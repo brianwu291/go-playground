@@ -6,17 +6,28 @@ import (
 	"net/http"
 	"time"
 
+	dotEnv "github.com/joho/godotenv"
+
 	websockethandler "github.com/brianwu291/go-playground/handlers/websocket"
 	realtimechat "github.com/brianwu291/go-playground/realtimechat"
+	utils "github.com/brianwu291/go-playground/utils"
 )
 
+type ChatTemplateEnvs struct {
+	WebSocketUrl string
+}
+
 func serveChat(w http.ResponseWriter, r *http.Request) {
+	data := ChatTemplateEnvs{
+		WebSocketUrl: utils.GetEnv("WEBSOCKETURL", "ws://localhost:8080"),
+	}
+
 	tmpl, err := template.ParseFiles("templates/chat.html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	tmpl.Execute(w, nil)
+	tmpl.Execute(w, data)
 }
 
 func manageRoomLifecycle(rt *realtimechat.RealTimeChat) {
@@ -33,6 +44,11 @@ func manageRoomLifecycle(rt *realtimechat.RealTimeChat) {
 }
 
 func main() {
+	err := dotEnv.Load()
+	if err != nil {
+		fmt.Printf("error loading .env file: %+v", err.Error())
+		return
+	}
 	// init without max clients as it's per room now
 	chat := realtimechat.NewRealTimeChat()
 
@@ -44,7 +60,7 @@ func main() {
 	http.HandleFunc("/ws", wsh.HandleRealTimeChat)
 	http.HandleFunc("/", serveChat)
 
-	portStr := "8080"
+	portStr := utils.GetEnv("PORT", "8080")
 	fmt.Printf("listening port %+v\n", portStr)
 
 	http.ListenAndServe(":"+portStr, nil)

@@ -363,6 +363,9 @@
     </div>
 
     <script>
+      window.envs = {
+        webSocketUrl: "{{ .WebSocketUrl }}",
+      };
       const overlay = document.createElement("div");
       overlay.className = "panel-overlay";
       document.body.appendChild(overlay);
@@ -457,9 +460,7 @@
         isWindowFocused = false;
       };
 
-      // ws://localhost:8080/ws
-      // wss://go-playground-chatroom-yperdw.fly.dev/ws
-      const ws = new WebSocket("wss://go-playground-chatroom-yperdw.fly.dev/ws");
+      const ws = new WebSocket(window.envs.webSocketUrl + "/ws");
 
       ws.onopen = () => {
         const username = prompt("Enter your username:");
