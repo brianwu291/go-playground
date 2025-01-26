@@ -183,3 +183,46 @@ func (i *Interview) LevelOrder(root *TreeNode) [][]int {
 	}
 	return result
 }
+
+func AddTwoNumbers(l1 *ListNode, l2 *ListNode) *ListNode {
+	getNodeNext := func(node *ListNode) *ListNode {
+		if node == nil {
+			return nil
+		}
+		return node.Next
+	}
+	getNodeVal := func(node *ListNode) int {
+		if node == nil {
+			return 0
+		}
+		return node.Val
+	}
+
+	var result *ListNode
+	var point *ListNode
+	l1Point := l1
+	l2Point := l2
+	var carry int
+	for l1Point != nil || l2Point != nil || carry != 0 {
+		curSum := getNodeVal(l1Point) + getNodeVal(l2Point) + carry
+		overTen := curSum >= 10
+		if overTen {
+			curSum = curSum % 10
+			carry = 1
+		} else {
+			carry = 0
+		}
+		if result == nil {
+			firstOne := ListNode{Val: curSum, Next: nil}
+			result = &firstOne
+			point = result
+		} else {
+			newNode := ListNode{Val: curSum, Next: nil}
+			point.Next = &newNode
+			point = point.Next
+		}
+		l1Point = getNodeNext(l1Point)
+		l2Point = getNodeNext(l2Point)
+	}
+	return result
+}
