@@ -315,6 +315,61 @@
         display: block;
         opacity: 1;
       }
+
+      .emoji-picker {
+        position: absolute;
+        bottom: 100%;
+        left: 16px;
+        background: white;
+        border: 1px solid #e4e6eb;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 8px;
+        display: none;
+        width: 300px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+      }
+
+      .emoji-picker.active {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 8px;
+      }
+
+      .emoji-item {
+        cursor: pointer;
+        padding: 4px;
+        text-align: center;
+        border-radius: 4px;
+        transition: background 0.2s;
+      }
+
+      .emoji-item:hover {
+        background: #f0f2f5;
+      }
+
+      .emoji-button {
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        color: #65676b;
+        font-size: 1.2rem;
+        transition: color 0.2s;
+      }
+
+      .emoji-button:hover {
+        color: #0084ff;
+      }
+
+      .input-container {
+        position: relative;
+        flex: 1;
+        display: flex;
+        align-items: center;
+      }
     </style>
   </head>
   <body>
@@ -338,21 +393,27 @@
         <div class="chat-container">
           <div class="messages" id="messages"></div>
           <div class="input-area">
-            <input
-              type="text"
-              class="message-input"
-              id="messageInput"
-              placeholder="Type a message..."
-              disabled
-            />
-            <button
-              class="send-button"
-              onclick="sendMessage()"
-              disabled
-              id="sendButton"
-            >
-              <i class="fas fa-paper-plane"></i>
-            </button>
+            <div class="input-container">
+              <button class="emoji-button" onclick="toggleEmojiPicker()">
+                <i class="far fa-smile"></i>
+              </button>
+              <div class="emoji-picker" id="emojiPicker"></div>
+              <input
+                type="text"
+                class="message-input"
+                id="messageInput"
+                placeholder="Type a message..."
+                disabled
+              />
+              <button
+                class="send-button"
+                onclick="sendMessage()"
+                disabled
+                id="sendButton"
+              >
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
           </div>
         </div>
         <div class="clients-panel">
@@ -382,6 +443,282 @@
         const panel = document.querySelector(".clients-panel");
         if (panel.classList.contains("active")) {
           toggleClientsPanel();
+        }
+      });
+
+      const emojis = [
+        // Smileys & Emotion
+        "😀",
+        "😃",
+        "😄",
+        "😁",
+        "😅",
+        "😂",
+        "🤣",
+        "😊",
+        "😇",
+        "🙂",
+        "🙃",
+        "😉",
+        "😌",
+        "😍",
+        "🥰",
+        "😘",
+        "😗",
+        "😙",
+        "😚",
+        "😋",
+        "😛",
+        "😝",
+        "😜",
+        "🤪",
+        "🤨",
+        "🧐",
+        "🤓",
+        "😎",
+        "🤩",
+        "🥳",
+        "😏",
+        "😒",
+        "😞",
+        "😔",
+        "😟",
+        "😕",
+        "🙁",
+        "☹️",
+        "😣",
+        "😖",
+        "😫",
+        "😩",
+        "🥺",
+        "😢",
+        "😭",
+        "😤",
+        "😠",
+        "😡",
+
+        // Hearts & Love
+        "❤️",
+        "🧡",
+        "💛",
+        "💚",
+        "💙",
+        "💜",
+        "🤎",
+        "🖤",
+        "🤍",
+        "💔",
+        "❤️‍🔥",
+        "💘",
+        "💝",
+        "💖",
+        "💗",
+        "💓",
+
+        // Gestures & Body
+        "👋",
+        "🤚",
+        "✋",
+        "🖐️",
+        "👌",
+        "🤌",
+        "🤏",
+        "✌️",
+        "🤘",
+        "🤟",
+        "🤙",
+        "👈",
+        "👉",
+        "👆",
+        "👇",
+        "👍",
+        "👎",
+        "👊",
+        "✊",
+        "🤛",
+        "🤜",
+        "👏",
+        "🙌",
+        "👐",
+        "🤲",
+        "🤝",
+        "🙏",
+        "✍️",
+        "💪",
+        "🦾",
+        "🫂",
+        "🧠",
+
+        // Animals
+        "🐶",
+        "🐱",
+        "🐭",
+        "🐹",
+        "🐰",
+        "🦊",
+        "🐻",
+        "🐼",
+        "🐨",
+        "🐯",
+        "🦁",
+        "🐮",
+        "🐷",
+        "🐸",
+        "🐵",
+        "🐔",
+
+        // Food & Drink
+        "🍎",
+        "🍐",
+        "🍊",
+        "🍋",
+        "🍌",
+        "🍉",
+        "🍇",
+        "🍓",
+        "🫐",
+        "🍒",
+        "🥝",
+        "🍅",
+        "🥑",
+        "🌮",
+        "🍔",
+        "🍕",
+        "🍺",
+        "🍻",
+        "🥂",
+        "☕",
+        "🧋",
+        "🥤",
+        "🧃",
+        "🥛",
+
+        // Activities
+        "⚽",
+        "🏀",
+        "🏈",
+        "⚾",
+        "🎾",
+        "🏉",
+        "🎱",
+        "🎲",
+        "🎮",
+        "🎨",
+        "🎭",
+        "🎪",
+        "🎫",
+        "🎟️",
+        "🎭",
+        "🎪",
+
+        // Travel & Places
+        "🌍",
+        "🌎",
+        "🌏",
+        "✈️",
+        "🚗",
+        "🚕",
+        "🚙",
+        "🚌",
+        "🏠",
+        "🏡",
+        "🏢",
+        "🏣",
+        "🏤",
+        "🏥",
+        "🏦",
+        "🏨",
+
+        // Objects
+        "⌚",
+        "📱",
+        "💻",
+        "⌨️",
+        "🖥️",
+        "🖨️",
+        "🖱️",
+        "🖲️",
+        "📷",
+        "🎥",
+        "🎞️",
+        "📞",
+        "☎️",
+        "📟",
+        "📠",
+        "📺",
+
+        // Symbols
+        "❗",
+        "❕",
+        "❓",
+        "❔",
+        "‼️",
+        "⁉️",
+        "™️",
+        "©️",
+        "®️",
+        "〽️",
+        "➰",
+        "➿",
+        "✳️",
+        "✴️",
+        "❇️",
+        "‼️",
+
+        // Weather & Nature
+        "🌞",
+        "🌝",
+        "🌛",
+        "🌜",
+        "🌚",
+        "🌕",
+        "🌖",
+        "🌗",
+        "🌘",
+        "🌑",
+        "🌒",
+        "🌓",
+        "🌔",
+        "⭐",
+        "🌟",
+        "💫",
+        "⚡",
+        "☄️",
+        "💥",
+        "🔥",
+        "🌪️",
+        "🌈",
+        "☀️",
+        "🌤️",
+      ];
+
+      // emoji picker
+      const emojiPicker = document.getElementById("emojiPicker");
+      emojis.forEach((emoji) => {
+        const emojiElement = document.createElement("div");
+        emojiElement.className = "emoji-item";
+        emojiElement.textContent = emoji;
+        emojiElement.onclick = () => addEmoji(emoji);
+        emojiPicker.appendChild(emojiElement);
+      });
+
+      function toggleEmojiPicker() {
+        const picker = document.getElementById("emojiPicker");
+        picker.classList.toggle("active");
+      }
+
+      function addEmoji(emoji) {
+        const input = document.getElementById("messageInput");
+        input.value += emoji;
+        input.focus();
+      }
+
+      // close emoji picker when clicking outside
+      document.addEventListener("click", (e) => {
+        const picker = document.getElementById("emojiPicker");
+        const emojiButton = document.querySelector(".emoji-button");
+        if (!picker.contains(e.target) && !emojiButton.contains(e.target)) {
+          picker.classList.remove("active");
         }
       });
 
