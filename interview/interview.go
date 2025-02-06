@@ -2,6 +2,7 @@ package interview
 
 import (
 	"fmt"
+	"math"
 )
 
 type Interview struct{}
@@ -224,5 +225,61 @@ func AddTwoNumbers(l1 *ListNode, l2 *ListNode) *ListNode {
 		l1Point = getNodeNext(l1Point)
 		l2Point = getNodeNext(l2Point)
 	}
+	return result
+}
+
+/*
+*
+[1,0,1]
+[1,1,0]
+[1,1,0]
+*/
+func CountSquares(matrix [][]int) int {
+	var result int
+
+	rowCount := len(matrix)
+	columnCount := len(matrix[0])
+	// handle how many row
+	for i := 0; i < rowCount; i += 1 {
+		ele := matrix[i][0]
+		if ele == 1 {
+			result += 1
+		}
+	}
+
+	// handle how many column
+	// start from 1 since above calculated
+	for i := 1; i < columnCount; i += 1 {
+		ele := matrix[0][i]
+		if ele == 1 {
+			result += 1
+		}
+	}
+
+	// handle rest one by one
+	for i := 1; i < rowCount; i += 1 {
+		for j := 1; j < columnCount; j += 1 {
+			curEle := matrix[i][j]
+			if curEle == 0 {
+				continue
+			}
+			top := matrix[i-1][j]
+			left := matrix[i][j-1]
+			topLeft := matrix[i-1][j-1]
+			if top >= 1 && left >= 1 && topLeft >= 1 {
+				// cur is 1
+				// get min val from top, left, and topLeft
+				// then minVal + cur to assign to cur, for ex, 1 + cur (1) = 2
+				// result += cur
+				smaller := math.Min(float64(top), float64(left))
+				min := int(math.Min(smaller, float64(topLeft)))
+				matrix[i][j] = min + curEle
+				result += matrix[i][j]
+			} else {
+				result += curEle
+			}
+		}
+	}
+
 	return result
 }
