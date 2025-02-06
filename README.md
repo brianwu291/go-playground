@@ -39,6 +39,10 @@ The project includes Docker support and can be deployed using Fly.io:
 
 - WebSocket Implementation
 - Real-time Chat Functionality
+  <br/>
+  demo:
+  <img width="1106" alt="realtime chatroom" src="https://github.com/user-attachments/assets/e0a17f61-10e3-4fc3-aea2-6984f6380e92" />
+
 - Rate Limiting
 - Thread-safe Operations
 - Worker Pool Pattern
