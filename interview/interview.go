@@ -1,7 +1,6 @@
 package interview
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -9,19 +8,6 @@ type Interview struct{}
 
 func NewInterview() *Interview {
 	return &Interview{}
-}
-
-func (i *Interview) FixBug(N int) {
-	var enable_print int
-	for N > 0 {
-		if enable_print == 0 && N%10 != 0 {
-			enable_print = 1
-		}
-		if enable_print == 1 {
-			fmt.Print(N % 10)
-		}
-		N = N / 10
-	}
 }
 
 func (i *Interview) CountDirtyAreas(plan []string) int {
