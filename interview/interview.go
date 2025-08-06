@@ -269,3 +269,46 @@ func CountSquares(matrix [][]int) int {
 
 	return result
 }
+
+func CoinChange(coins []int, amount int) int {
+	// 1, 5, 10
+	// 11
+	// 2 (1, 10)
+
+	// dp[0] = 0
+	// dp[1] = 1
+	// dp[2] = dp[1] + 1 --> 2
+	// dp[3] = dp[2] + 1 --> 3
+	// dp[4] = dp[3] + 1 --> 4
+	// dp[5] = 1
+	// ...
+	// dp[amount] = dp[amount - 1(value of one coin)] + 1 (count of coins)
+
+	// 1, 5, 100
+	// 10
+	// [0,1,2,3,4,5,6,7,8,9,10]
+
+	if amount <= 0 {
+		return 0
+	}
+	dp := make([]int, amount+1)
+	for ac := 1; ac <= amount; ac++ {
+		for _, coin := range coins {
+			r := ac - coin
+			if r == 0 {
+				dp[ac] = 1
+				continue
+			}
+			if r > 0 && dp[r] > 0 {
+				origin := dp[ac]
+				if origin == 0 || dp[r]+1 < origin {
+					dp[ac] = dp[r] + 1
+				}
+			}
+		}
+	}
+	if dp[amount] == 0 {
+		return -1
+	}
+	return dp[amount]
+}

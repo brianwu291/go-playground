@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
+	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -11,7 +14,88 @@ import (
 	websockethandler "github.com/brianwu291/go-playground/handlers/websocket"
 	realtimechat "github.com/brianwu291/go-playground/realtimechat"
 	utils "github.com/brianwu291/go-playground/utils"
+
+	pb "github.com/brianwu291/go-playground/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
+
+type greaterServer struct {
+	pb.UnimplementedGreeterServer
+}
+
+func (s *greaterServer) SayHello(ctx context.Context, req *pb.HelloRequest) (*pb.HelloResponse, error) {
+	log.Printf("Received: %v", req.GetName())
+	return &pb.HelloResponse{Message: fmt.Sprintf("Hello, %s!", req.GetName())}, nil
+}
+
+func (s *greaterServer) SayHelloStream(req *pb.HelloRequest, stream pb.Greeter_SayHelloStreamServer) error {
+	for i := 0; i < 5; i++ {
+		message := fmt.Sprintf("Hello, %s! Message %d", req.GetName(), i+1)
+		if err := stream.Send(&pb.HelloResponse{Message: message}); err != nil {
+			return err
+		}
+		time.Sleep(time.Second)
+	}
+	return nil
+}
+
+func runServer() error {
+	// Create listener
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		return fmt.Errorf("failed to listen: %v", err)
+	}
+
+	// Create gRPC greaterServer
+	s := grpc.NewServer()
+	pb.RegisterGreeterServer(s, &greaterServer{})
+
+	log.Printf("Server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		return fmt.Errorf("failed to serve: %v", err)
+	}
+	return nil
+}
+
+func runClient() error {
+	// set up connection to server
+	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	// create client
+	c := pb.NewGreeterClient(conn)
+
+	// contact server
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	// call unary RPC
+	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: "world"})
+	if err != nil {
+		return fmt.Errorf("could not greet: %v", err)
+	}
+	log.Printf("Unary Response: %s", r.GetMessage())
+
+	// call streaming RPC
+	stream, err := c.SayHelloStream(context.Background(), &pb.HelloRequest{Name: "streaming world"})
+	if err != nil {
+		return fmt.Errorf("could not greet: %v", err)
+	}
+
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			break
+		}
+		log.Printf("Stream Response: %s", resp.GetMessage())
+	}
+
+	return nil
+}
 
 type ChatTemplateEnvs struct {
 	WebSocketUrl string
