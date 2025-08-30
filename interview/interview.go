@@ -376,17 +376,12 @@ func ConvertStrToNum(str string) (int, int, error) {
  * }
  */
 
-type NodeWithLevel struct {
-	Node  *TreeNode
-	Level int
-}
-
-func rightSideView(root *TreeNode) []int {
+func RightSideView(root *TreeNode) []int {
 	if root == nil {
 		return []int{}
 	}
 	res := []int{root.Value}
-	queue := []*NodeWithLevel{{Node: root, Level: 0}}
+	queue := []*nodeWithLevel{{Node: root, Level: 0}}
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
@@ -398,12 +393,64 @@ func rightSideView(root *TreeNode) []int {
 		}
 		res[cur.Level] = cur.Node.Value
 		if cur.Node.Left != nil {
-			queue = append(queue, &NodeWithLevel{Node: cur.Node.Left, Level: cur.Level + 1})
+			queue = append(queue, &nodeWithLevel{Node: cur.Node.Left, Level: cur.Level + 1})
 		}
 		if cur.Node.Right != nil {
-			queue = append(queue, &NodeWithLevel{Node: cur.Node.Right, Level: cur.Level + 1})
+			queue = append(queue, &nodeWithLevel{Node: cur.Node.Right, Level: cur.Level + 1})
 		}
 	}
 
 	return res
+}
+
+/**
+ * Definition for a Node.
+ * type Node struct {
+ *     Val int
+ *     Left *Node
+ *     Right *Node
+ *     Next *Node
+ * }
+ */
+
+type Node struct {
+	Val   int
+	Left  *Node
+	Right *Node
+	Next  *Node
+}
+
+func Connect(root *Node) *Node {
+	if root == nil {
+		return root
+	}
+
+	type nodeWithLevel struct {
+		Node  *Node
+		Level int
+	}
+
+	queue := []*nodeWithLevel{{Node: root, Level: 0}}
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		curLevel := cur.Level
+		var next *nodeWithLevel
+		if len(queue) > 0 {
+			next = queue[0]
+		}
+		if next == nil || next.Level != curLevel {
+			cur.Node.Next = nil
+		} else {
+			cur.Node.Next = next.Node
+		}
+		if cur.Node.Left != nil {
+			queue = append(queue, &nodeWithLevel{Node: cur.Node.Left, Level: cur.Level + 1})
+		}
+		if cur.Node.Right != nil {
+			queue = append(queue, &nodeWithLevel{Node: cur.Node.Right, Level: cur.Level + 1})
+		}
+	}
+
+	return root
 }
