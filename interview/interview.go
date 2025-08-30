@@ -1,7 +1,9 @@
 package interview
 
 import (
+	"errors"
 	"math"
+	"strconv"
 )
 
 type Interview struct{}
@@ -311,4 +313,97 @@ func CoinChange(coins []int, amount int) int {
 		return -1
 	}
 	return dp[amount]
+}
+
+// "123" -> (123, 0)
+// "0000000123.45" -> (12345, 2)
+// "0.123" -> (123, 3)
+// 0.
+// .2
+// "          "
+// .
+// "        123.1"
+// "1.223323" -> (12, 1, nil)
+// "-23" -> (-123, 2, nil)
+// "1.-23" ->
+
+func ConvertStrToNum(str string) (int, int, error) {
+	var num, point int
+	length := len(str)
+	first := str[0]
+	if length == 0 || first == '.' || str[length-1] == '.' {
+		return num, point, errors.New("invalid")
+	}
+
+	finalIndex := 0
+	if first == '-' {
+		finalIndex = 1
+	}
+	var hadPoint bool
+	for i := length - 1; i >= finalIndex; i -= 1 {
+		cur := str[i]
+		if hadPoint && cur == '.' {
+			return num, point, errors.New("invalid")
+		}
+		if (cur > '9' || cur < '0') && cur != '.' {
+			return num, point, errors.New("invalid")
+		}
+		if str[i] == '.' {
+			point = length - 1 - i
+			hadPoint = true
+		} else if cur != '0' {
+			stand := length - i - 1
+			if hadPoint {
+				stand -= 1
+			}
+			parseInt, _ := strconv.Atoi(string(cur))
+			num += parseInt * int(math.Pow10(stand))
+		}
+	}
+
+	if finalIndex == 1 {
+		num = -num
+	}
+	return num, point, nil
+}
+
+/**
+ * Definition for a binary tree node.
+ * type TreeNode struct {
+ *     Val int
+ *     Left *TreeNode
+ *     Right *TreeNode
+ * }
+ */
+
+type NodeWithLevel struct {
+	Node  *TreeNode
+	Level int
+}
+
+func rightSideView(root *TreeNode) []int {
+	if root == nil {
+		return []int{}
+	}
+	res := []int{root.Value}
+	queue := []*NodeWithLevel{{Node: root, Level: 0}}
+	for len(queue) > 0 {
+		cur := queue[0]
+		queue = queue[1:]
+		curLevel := cur.Level
+		if len(res)-1 <= curLevel {
+			for i := len(res); i <= curLevel; i += 1 {
+				res = append(res, math.MinInt)
+			}
+		}
+		res[cur.Level] = cur.Node.Value
+		if cur.Node.Left != nil {
+			queue = append(queue, &NodeWithLevel{Node: cur.Node.Left, Level: cur.Level + 1})
+		}
+		if cur.Node.Right != nil {
+			queue = append(queue, &NodeWithLevel{Node: cur.Node.Right, Level: cur.Level + 1})
+		}
+	}
+
+	return res
 }
