@@ -276,7 +276,7 @@ func CoinChanges(coins []int, amount int) int {
 	if amount <= 0 {
 		return 0
 	}
-	dp := make([]int, 0, amount+1)
+	dp := make([]int, amount+1)
 	for acc := 1; acc <= amount+1; acc++ {
 		for _, coin := range coins {
 			if coin == acc {
@@ -439,4 +439,59 @@ func Connect(root *Node) *Node {
 	}
 
 	return root
+}
+
+// func LongestSubStringWithoutRepeatingChars(s string) int {
+// 	if len(s) == 0 {
+// 		return 0
+// 	}
+// 	for i := 0; i < len(s); i += 1 {
+// 		cur := s[i]
+// 		r := rune(cur)
+// 		str := string(r)
+// 	}
+// }
+
+func Exist(board [][]byte, word string) bool {
+	rows := len(board)
+	cols := len(board[0])
+	wordLen := len(word)
+	var check func(row int, col int, wordIdx int, visited [][]bool) bool
+	check = func(row int, col int, wordIdx int, visited [][]bool) bool {
+		if row < 0 || row >= rows || col < 0 || col >= cols {
+			return false
+		}
+		if visited[row][col] {
+			return false
+		}
+		cur := board[row][col]
+		wordChar := word[wordIdx]
+		if cur != wordChar {
+			return false
+		}
+		if wordIdx == wordLen-1 {
+			return true
+		}
+		visited[row][col] = true
+		defer func() {
+			visited[row][col] = false
+		}()
+		return check(row-1, col, wordIdx+1, visited) ||
+			check(row+1, col, wordIdx+1, visited) ||
+			check(row, col-1, wordIdx+1, visited) ||
+			check(row, col+1, wordIdx+1, visited)
+	}
+
+	visited := make([][]bool, rows)
+	for k := range visited {
+		visited[k] = make([]bool, cols)
+	}
+	for i, row := range board {
+		for j := range row {
+			if check(i, j, 0, visited) {
+				return true
+			}
+		}
+	}
+	return false
 }
