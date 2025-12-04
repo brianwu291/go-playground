@@ -7,49 +7,56 @@ const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 var ErrInvalidBase64String = fmt.Errorf("invalid base64 string")
 
 func Encode(d []byte) string {
+	// separate 3 byte as 1 group
+	// for each group, split into 4 group (6 bit a new group)
+	// for each new group, make it as a new byte, and access table to get the string
+	// concat to result string
+
 	if len(d) == 0 {
 		return ""
 	}
-
-	canDivideBy3 := len(d)%3 == 0
-	var length int
-	if canDivideBy3 {
-		length = len(d) / 3 * 4
-	} else {
-		length = (len(d)/3 + 1) * 4
+	// might need add extra "="
+	var canDividedBy3 bool
+	if len(d)%3 == 0 {
+		canDividedBy3 = true
 	}
-	res := make([]byte, 0, length)
+	var resLen int
+	if canDividedBy3 {
+		resLen = len(d) / 3 * 4
+	} else {
+		resLen = (len(d)/3 + 1) * 4
+	}
+
+	result := make([]byte, 0, resLen)
 
 	for i := 0; i < len(d); i += 3 {
-		b1, b2, b3 := d[i], byte(0), byte(0)
+		d1, d2, d3 := d[i], byte(0), byte(0)
 		if i+1 < len(d) {
-			b2 = d[i+1]
+			d2 = d[i+1]
 		}
 		if i+2 < len(d) {
-			b3 = d[i+2]
+			d3 = d[i+2]
 		}
+		one := d1 >> 2
+		result = append(result, table[one])
 
-		// will have 4 groups of 6 bits
-		g1 := b1 >> 2            // ex: 101010,01 --> 00,101010
-		g2 := b1&0x03<<4 | b2>>4 // ex: 000000,10 1010 --> 10,101000
-		g3 := b2&0x0F<<2 | b3>>6 // ex: 0000,0010 101010 --> 10,101000
-		g4 := b3 & 0x3F          // ex: 00,101010
-
-		res = append(res, table[g1])
-		res = append(res, table[g2])
+		two := d1&0x03<<4 | d2>>4
+		result = append(result, table[two])
 		if i+1 < len(d) {
-			res = append(res, table[g3])
+			three := d2&0x0f<<2 | d3>>6
+			result = append(result, table[three])
 		} else {
-			res = append(res, '=')
+			result = append(result, '=')
 		}
 		if i+2 < len(d) {
-			res = append(res, table[g4])
+			four := d3 & 0x3f
+			result = append(result, table[four])
 		} else {
-			res = append(res, '=')
+			result = append(result, '=')
 		}
 	}
 
-	return string(res)
+	return string(result)
 }
 
 func buildDecodeTable() map[byte]byte {
