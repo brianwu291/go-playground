@@ -52,6 +52,16 @@ func Encode(d []byte) string {
 	return string(res)
 }
 
+func buildDecodeTable() map[byte]byte {
+	m := make(map[byte]byte, len(table))
+	for i := 0; i < len(table); i++ {
+		m[table[i]] = byte(i)
+	}
+	return m
+}
+
+var decodeTable = buildDecodeTable()
+
 func Decode(code string) ([]byte, error) {
 	if len(code) == 0 {
 		return []byte{}, nil
@@ -62,11 +72,6 @@ func Decode(code string) ([]byte, error) {
 	}
 
 	res := make([]byte, 0, len(code)/4*3)
-
-	decodeTable := make(map[byte]byte)
-	for i := 0; i < len(table); i++ {
-		decodeTable[table[i]] = byte(i)
-	}
 
 	for i := 0; i < len(code); i += 4 {
 		c1, c2, c3, c4 := code[i], code[i+1], code[i+2], code[i+3]
