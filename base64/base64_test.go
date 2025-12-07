@@ -41,6 +41,8 @@ func TestDecode(t *testing.T) {
 		{"hello world", "SGVsbG8sIFdvcmxkIQ==", []byte("Hello, World!"), false},
 		{"invalid length", "ABC", nil, true},
 		{"invalid char", "AB@D", nil, true},
+		{"invalid char", "好讚11", nil, true},
+		{"invalid char", "11好棒", nil, true},
 	}
 
 	for _, tt := range tests {

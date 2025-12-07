@@ -1,27 +1,23 @@
 package base64
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 var ErrInvalidBase64String = fmt.Errorf("invalid base64 string")
 
 func Encode(d []byte) string {
-	// separate 3 byte as 1 group
-	// for each group, split into 4 group (6 bit a new group)
-	// for each new group, make it as a new byte, and access table to get the string
-	// concat to result string
+	// split d 3 byte a group, for loop
+	// each group, every 6 bit a group as a char from table
+	// if empty, append "="
 
 	if len(d) == 0 {
 		return ""
 	}
-	// might need add extra "="
-	var canDividedBy3 bool
-	if len(d)%3 == 0 {
-		canDividedBy3 = true
-	}
 	var resLen int
-	if canDividedBy3 {
+	if len(d)%3 == 0 {
 		resLen = len(d) / 3 * 4
 	} else {
 		resLen = (len(d)/3 + 1) * 4
@@ -30,27 +26,30 @@ func Encode(d []byte) string {
 	result := make([]byte, 0, resLen)
 
 	for i := 0; i < len(d); i += 3 {
-		d1, d2, d3 := d[i], byte(0), byte(0)
+		b1, b2, b3 := d[i], byte(0), byte(0)
 		if i+1 < len(d) {
-			d2 = d[i+1]
+			b2 = d[i+1]
 		}
 		if i+2 < len(d) {
-			d3 = d[i+2]
+			b3 = d[i+2]
 		}
-		one := d1 >> 2
-		result = append(result, table[one])
 
-		two := d1&0x03<<4 | d2>>4
-		result = append(result, table[two])
+		c1 := table[b1>>2]
+		result = append(result, c1)
+
+		c2 := table[b1&0x03<<4|b2>>4]
+		result = append(result, c2)
+
 		if i+1 < len(d) {
-			three := d2&0x0f<<2 | d3>>6
-			result = append(result, table[three])
+			c3 := table[b2&0x0f<<2|b3>>6]
+			result = append(result, c3)
 		} else {
 			result = append(result, '=')
 		}
+
 		if i+2 < len(d) {
-			four := d3 & 0x3f
-			result = append(result, table[four])
+			c4 := table[b3&0x3f]
+			result = append(result, c4)
 		} else {
 			result = append(result, '=')
 		}
@@ -60,57 +59,58 @@ func Encode(d []byte) string {
 }
 
 func buildDecodeTable() map[byte]byte {
-	m := make(map[byte]byte, len(table))
-	for i := 0; i < len(table); i++ {
-		m[table[i]] = byte(i)
+	res := make(map[byte]byte, len(table))
+	for i := 0; i < len(table); i += 1 {
+		res[table[i]] = byte(i)
 	}
-	return m
+	return res
 }
 
-var decodeTable = buildDecodeTable()
+var decodedTable = buildDecodeTable()
 
 func Decode(code string) ([]byte, error) {
-	if len(code) == 0 {
-		return []byte{}, nil
+	// each chat represent 6 bit of source data
+	// split with 4 byte a group
+	// each group, every 8 bit, map back to byte
+
+	if code == "" {
+		return nil, nil
 	}
 
-	if len(code)%4 != 0 {
+	if len(code)%4 != 0 { // no need to use rune here since we will handle it later in loop
 		return nil, ErrInvalidBase64String
 	}
 
-	res := make([]byte, 0, len(code)/4*3)
-
-	for i := 0; i < len(code); i += 4 {
+	result := make([]byte, 0, len(code)/4*3)
+	for i := 0; i < len(code); i += 4 { // here item access from decodedTable can handle input code contains Not ASCII text
 		c1, c2, c3, c4 := code[i], code[i+1], code[i+2], code[i+3]
-		var b1, b2, b3 byte
-
-		v1, ok1 := decodeTable[c1]
-		v2, ok2 := decodeTable[c2]
+		v1, ok1 := decodedTable[c1]
+		v2, ok2 := decodedTable[c2]
 		if !ok1 || !ok2 {
 			return nil, ErrInvalidBase64String
 		}
-		b1 = v1<<2 | v2>>4
-
-		res = append(res, b1)
+		b1 := v1<<2 | v2>>4
+		result = append(result, b1)
 
 		if c3 != '=' {
-			v3, ok3 := decodeTable[c3]
-			if !ok3 {
+			v3, ok := decodedTable[c3]
+			if !ok {
 				return nil, ErrInvalidBase64String
 			}
-			b2 = v2<<4 | v3>>2
-			res = append(res, b2)
+			b2 := v2<<4 | v3>>2
+			result = append(result, b2)
 		}
 
 		if c4 != '=' {
-			v4, ok4 := decodeTable[c4]
-			if !ok4 {
+			v4, ok := decodedTable[c4]
+			if !ok {
 				return nil, ErrInvalidBase64String
 			}
-			v3 := decodeTable[c3]
-			b3 = v3<<6 | v4
-			res = append(res, b3)
+			v3 := decodedTable[c3]
+			b3 := v3<<6 | v4
+			result = append(result, b3)
 		}
 	}
-	return res, nil
+
+	return result, nil
 }
