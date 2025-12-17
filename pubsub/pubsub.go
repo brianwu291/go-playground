@@ -16,16 +16,16 @@ func NewPubSubFlash() *PubSubFlash {
 	return &PubSubFlash{}
 }
 
-func (a *PubSubFlash) mockFlashFile(content []string) {
+func (a *PubSubFlash) mockFlashFile(content []rune) {
 	if len(content) > 0 {
 		time.Sleep(time.Second * 3)
-		fmt.Printf("file content: %+v\n", content)
+		fmt.Printf("file content: %+v\n", string(content))
 	}
 }
 
-func (a *PubSubFlash) Producer(content []string) chan string {
+func (a *PubSubFlash) Producer(content []rune) chan rune {
 	var wg sync.WaitGroup
-	result := make(chan string, len(content))
+	result := make(chan rune, len(content))
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -38,11 +38,11 @@ func (a *PubSubFlash) Producer(content []string) chan string {
 	return result
 }
 
-func (a *PubSubFlash) Consumer(buffers <-chan string) {
+func (a *PubSubFlash) Consumer(buffers <-chan rune) {
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
-	var content []string
+	var content []rune
 
 	for {
 		select {
@@ -68,9 +68,9 @@ func (a *PubSubFlash) Consumer(buffers <-chan string) {
 
 func Demo() {
 	pubsub := NewPubSubFlash()
-	content := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
+	content := []rune("abcdefghij")
 	buffers := pubsub.Producer(content)
-	contentC := []string{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}
+	contentC := []rune("1234567890")
 	buffersC := pubsub.Producer(contentC)
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -83,5 +83,5 @@ func Demo() {
 		pubsub.Consumer(buffersC)
 	}()
 	wg.Wait()
-	fmt.Printf("all done!\n")
+	fmt.Printf("done!\n")
 }
