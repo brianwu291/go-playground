@@ -1,24 +1,11 @@
-// package main
+package main
 
-// import (
-// 	"context"
-// 	"fmt"
-// 	"html/template"
-// 	"log"
-// 	"net"
-// 	"net/http"
-// 	"time"
+import (
+	"net/http"
 
-// 	dotEnv "github.com/joho/godotenv"
-
-// 	websockethandler "github.com/brianwu291/go-playground/handlers/websocket"
-// 	realtimechat "github.com/brianwu291/go-playground/realtimechat"
-// 	utils "github.com/brianwu291/go-playground/utils"
-
-// 	pb "github.com/brianwu291/go-playground/proto"
-// 	"google.golang.org/grpc"
-// 	"google.golang.org/grpc/credentials/insecure"
-// )
+	pb "github.com/brianwu291/go-playground/pb"
+	utils "github.com/brianwu291/go-playground/utils"
+)
 
 // type greaterServer struct {
 // 	pb.UnimplementedGreeterServer
@@ -150,11 +137,9 @@
 // 	http.ListenAndServe(":"+portStr, nil)
 // }
 
-// To execute Go code, please declare a func main() in a package "main"
-
-package main
-
 func main() {
-	// queue.Demo()
-	// pubsub.Demo()
+	pb.Demo()
+
+	portStr := utils.GetEnv("PORT", "8080")
+	http.ListenAndServe(":"+portStr, nil)
 }
