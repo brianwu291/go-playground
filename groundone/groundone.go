@@ -65,3 +65,33 @@ func (a *GroundOne) Consumer(buffers <-chan string) {
 		}
 	}
 }
+
+func flash(content []string) {
+	fmt.Printf("content: %+v\n", content)
+}
+
+func Consume(buf <-chan string) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	var content []string
+
+	for {
+		select {
+		case d, ok := <-buf:
+			if !ok { // empty and closed already
+				flash(content)
+				content = content[:0]
+				return
+			}
+			if len(content) >= 10 {
+				flash(content)
+				content = content[:0]
+				content = append(content, d)
+			}
+		case <-ticker.C:
+			flash(content)
+			content = content[:0]
+		}
+	}
+}
