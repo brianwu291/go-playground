@@ -1,33 +1,46 @@
 package asyncqueue
 
-import "fmt"
-
-type AsyncQueue struct {
-	max         uint
-	pushedTasks chan Task
-}
+import (
+	"context"
+	"fmt"
+	"sync"
+)
 
 type Task func() error
 
-func NewAsyncQueue(limit uint) (*AsyncQueue, error) {
-	if limit == 0 {
-		return nil, fmt.Errorf("limit should be positive!\n")
+type AsyncQueue struct {
+	tasks chan Task
+	once  sync.Once
+}
+
+func New(concurrency uint) (*AsyncQueue, error) {
+	if concurrency == 0 {
+		return nil, fmt.Errorf("asyncqueue: concurrency must be greater than zero")
 	}
-	pt := make(chan Task, limit*10)
-	aq := &AsyncQueue{
-		max:         limit,
-		pushedTasks: pt,
+	q := &AsyncQueue{
+		tasks: make(chan Task, concurrency*10),
 	}
-	for i := 0; i < int(aq.max); i++ {
+	for range concurrency {
 		go func() {
-			for t := range aq.pushedTasks {
+			for t := range q.tasks {
 				t()
 			}
 		}()
 	}
-	return aq, nil
+	return q, nil
 }
 
-func (aq *AsyncQueue) Add(task Task) {
-	aq.pushedTasks <- task
+func (q *AsyncQueue) Add(ctx context.Context, task Task) error {
+	select {
+	case q.tasks <- task:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("asyncqueue: %w", ctx.Err())
+	}
+}
+
+func (q *AsyncQueue) Close() {
+	q.once.Do(func() {
+		close(q.tasks)
+	})
 }
